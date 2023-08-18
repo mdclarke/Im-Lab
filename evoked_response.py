@@ -3,9 +3,10 @@
 """
 Created on Mon Aug 14 09:20:23 2023
 
-@author: mdclarke@sfu.ca
+@author: maggie
 """
 import mne
+import os
 import os.path as op
 import numpy as np
 from mne.preprocessing import maxwell_filter, compute_average_dev_head_t
@@ -26,15 +27,15 @@ ct = op.join(path, 'ct_sparse.fif')
 fc = op.join(path, 'sss_cal.dat')
 
 # read in raw data
-raw = mne.io.Raw(op.join(path, 'ENS', '%s_MEG_ENS_navon_raw.fif' %s), 
-                 preload=True)
+raw = mne.io.Raw(op.join(path, 'ENS', '%s' %s, 
+                         '%s_MEG_ENS_navon_raw.fif' %s), preload=True)
 
 # make a copy of raw and filter (you can change the bandpass here or choose 
 # to not filter)
 raw_filtered = raw.copy().load_data().filter(l_freq=None, h_freq=50.)
 
 # plot raw data and visually inspect for bad channels
-raw_filtered.plot()
+#raw_filtered.plot()
 
 # set bad channels in data structure - get these from 
 # runsheet OR visual inspection
@@ -52,15 +53,22 @@ if calc_headpos == True:
     locs = compute_chpi_locs(raw.info, amps)
     pos = compute_head_pos(raw.info, locs)
     # save pos file (computing takes awhile)
-    write_head_pos(op.join(path, 'ENS', '%s_pos.fif' %s), pos)
+    write_head_pos(op.join(path, 'ENS', '%s' %s, '%s_pos.fif' %s), pos)
 else:
-    pos = mne.chpi.read_head_pos('/home/maggie/data/ENS/p004_pos.fif')
+    pos = mne.chpi.read_head_pos(op.join(path, 'ENS', '%s' %s, 
+                                         '%s_pos.fif' %s))
 
 # get initial head position and calculate average (across time) head position
 orig_head_dev_t = mne.transforms.invert_transform(raw.info["dev_head_t"])
 avg_head_dev_t = mne.transforms.invert_transform(compute_average_dev_head_t
                                                      (raw, pos))
+
 # plot head positions over time (green=initial, red=average)
+if not os.path.exists(op.join(path, 'ENS', '%s' %s, 'figures')):
+    os.makedirs(op.join(path, 'ENS', '%s' %s, 'figures'))
+write_head_pos(op.join(path, 'ENS', '%s' %s, 'figures', 
+                       '%s_pos.fif' %s), pos)
+
 fig = mne.viz.plot_head_positions(pos)
 for ax, val, val_ori in zip(
     fig.axes[::2],
@@ -69,7 +77,7 @@ for ax, val, val_ori in zip(
 ):
     ax.axhline(1000 * val, color="r")
     ax.axhline(1000 * val_ori, color="g")
-fig.savefig(op.join(path, 'ENS', '%s_headpos' %s))
+fig.savefig(op.join(path, 'ENS', '%s' %s, 'figures', '%s_headpos' %s))
 
 # use average position for movement compensation destination    
 destination = (raw.info['dev_head_t']['trans'][:3, 3])
@@ -95,8 +103,7 @@ event_dict = {
     "Visual1": 2,
     "Visual2": 3,
     "Visual3": 4,
-    "Visual4": 5,
-    "buttonpress": 9}
+    "Visual4": 5}
 
 # plot triggers
 fig = mne.viz.plot_events(
@@ -107,7 +114,7 @@ fig = mne.viz.plot_events(
 reject = dict(mag=9000e-15, grad=4000e-13)
 
 epochs = mne.Epochs(tsss_mc, adjusted_events, event_id=event_dict, 
-                    tmin=-0.2, tmax=0.5, baseline=(-0.1, 0), 
+                    tmin=-0.2, tmax=0.5, baseline=(-0.15, 0.05), 
                     reject=reject, preload=True)
 
 #epochs.equalize_event_counts(epochs)  # if needed
@@ -130,3 +137,4 @@ vis4 = epochs["Visual4"].average()
 mne.viz.plot_compare_evokeds(dict(Visual1=vis1, Visual2=vis2, Visual3=vis3, 
                                   Visual4=vis4), legend="upper left", 
                              show_sensors="upper right")
+    
