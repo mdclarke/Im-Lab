@@ -19,7 +19,7 @@ from mne.chpi import (compute_chpi_amplitudes, compute_chpi_locs,
 path = '/home/maggie/data/ENS/'
 
 # setup subject name ### change this for each subject
-s = 'p005'
+s = 'p007'
 
 # set to True if headpos has not already been calculated & saved
 calc_headpos = True
