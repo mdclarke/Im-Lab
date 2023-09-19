@@ -16,7 +16,7 @@ from mne.preprocessing import ICA
 path = '/home/maggie/data/ENS/'
 
 # setup subject name ### change this for each subject
-s = 'p005'
+s = 'p007'
 ###############################################################################
 
 # read in processed data
